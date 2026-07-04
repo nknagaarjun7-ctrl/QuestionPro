@@ -1,16 +1,16 @@
-# Stage 1: Build the WAR using Ant
+# ---------- Build Stage ----------
 FROM eclipse-temurin:21-jdk AS builder
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y ant
+
 COPY . .
 
-RUN apt-get update && \
-    apt-get install -y ant && \
-    ant clean dist
+RUN ant clean dist
 
-# Stage 2: Run Tomcat
-FROM tomcat:11.0-jdk21-temurin
+# ---------- Runtime Stage ----------
+FROM tomcat:11.0
 
 RUN rm -rf /usr/local/tomcat/webapps/*
 
