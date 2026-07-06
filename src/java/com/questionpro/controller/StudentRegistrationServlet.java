@@ -55,22 +55,13 @@ public class StudentRegistrationServlet extends HttpServlet {
             boolean success = studentDAO.registerStudent(student);
 
             if (success) {
-
-                response.sendRedirect(request.getContextPath()
-                        + "/student/studentLogin.jsp?msg=registered");
-
-            } else {
-
-                response.sendRedirect(request.getContextPath()
-                        + "/student/studentRegister.jsp?error=failed");
-            }
+    response.getWriter().println("REGISTER SUCCESS");
+} else {
+    response.getWriter().println("REGISTER FAILED");
+}
 
         } catch (Exception e) {
-
-            e.printStackTrace();
-
-            response.sendRedirect(request.getContextPath()
-                    + "/student/studentRegister.jsp?error=server");
-        }
+    e.printStackTrace(response.getWriter());
+}
     }
 }
