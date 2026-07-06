@@ -12,135 +12,161 @@ import org.mindrot.jbcrypt.BCrypt;
 
 public class StudentDAO {
 
-    // Register Student
+    // ================= REGISTER =================
     public boolean registerStudent(Student s) {
 
-        if (s == null
-                || s.getName() == null || s.getName().trim().isEmpty()
-                || s.getEmail() == null || s.getEmail().trim().isEmpty()
-                || s.getPassword() == null || s.getPassword().trim().isEmpty()) {
+        System.out.println("===== registerStudent() START =====");
+
+        if (s == null) {
+            System.out.println("Student object is NULL");
             return false;
         }
 
-        if (emailExists(s.getEmail().trim())) {
+        System.out.println("Name : " + s.getName());
+        System.out.println("Email: " + s.getEmail());
+        System.out.println("Phone: " + s.getPhone());
+
+        if (emailExists(s.getEmail())) {
+            System.out.println("Email already exists");
             return false;
         }
 
-        String sql = "INSERT INTO students(name,email,password,phone) VALUES(?,?,?,?)";
+        String sql =
+                "INSERT INTO students(name,email,password,phone) VALUES(?,?,?,?)";
 
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+        try (
+                Connection con = DBConnection.getConnection();
+                PreparedStatement ps = con.prepareStatement(sql)) {
 
-            String hash = BCrypt.hashpw(s.getPassword().trim(), BCrypt.gensalt());
+            String hash = BCrypt.hashpw(s.getPassword(), BCrypt.gensalt());
 
-            ps.setString(1, s.getName().trim());
-            ps.setString(2, s.getEmail().trim());
+            ps.setString(1, s.getName());
+            ps.setString(2, s.getEmail());
             ps.setString(3, hash);
             ps.setString(4, s.getPhone());
 
-            return ps.executeUpdate() > 0;
+            int rows = ps.executeUpdate();
+
+            System.out.println("Rows Inserted = " + rows);
+
+            return rows > 0;
 
         } catch (SQLException e) {
+
+            System.out.println("===== SQL ERROR =====");
             e.printStackTrace();
+
+        } catch (Exception e) {
+
+            System.out.println("===== UNKNOWN ERROR =====");
+            e.printStackTrace();
+
         }
 
         return false;
     }
 
-    // Login
+    // ================= LOGIN =================
     public Student validateStudent(String email, String password) {
 
         String sql = "SELECT * FROM students WHERE email=?";
 
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+        try (
+                Connection con = DBConnection.getConnection();
+                PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setString(1, email.trim());
+            ps.setString(1, email);
 
-            try (ResultSet rs = ps.executeQuery()) {
+            ResultSet rs = ps.executeQuery();
 
-                if (rs.next()) {
+            if (rs.next()) {
 
-                    String dbPassword = rs.getString("password");
+                String dbPassword = rs.getString("password");
 
-                    if (BCrypt.checkpw(password, dbPassword)) {
+                if (BCrypt.checkpw(password, dbPassword)) {
 
-                        Student s = new Student();
+                    Student s = new Student();
 
-                        s.setId(rs.getInt("id"));
-                        s.setName(rs.getString("name"));
-                        s.setEmail(rs.getString("email"));
-                        s.setPhone(rs.getString("phone"));
-                        s.setPassword(dbPassword);
+                    s.setId(rs.getInt("id"));
+                    s.setName(rs.getString("name"));
+                    s.setEmail(rs.getString("email"));
+                    s.setPhone(rs.getString("phone"));
+                    s.setPassword(dbPassword);
 
-                        return s;
-                    }
+                    return s;
                 }
-
             }
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
         return null;
     }
 
-    // Email Exists
+    // ================= EMAIL EXISTS =================
     public boolean emailExists(String email) {
 
         String sql = "SELECT id FROM students WHERE email=?";
 
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+        try (
+                Connection con = DBConnection.getConnection();
+                PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setString(1, email);
 
-            try (ResultSet rs = ps.executeQuery()) {
+            ResultSet rs = ps.executeQuery();
 
-                return rs.next();
+            boolean exists = rs.next();
 
-            }
+            System.out.println("Email Exists = " + exists);
 
-        } catch (SQLException e) {
+            return exists;
+
+        } catch (Exception e) {
+
             e.printStackTrace();
+
         }
 
         return false;
     }
 
-    // Student Count
+    // ================= COUNT =================
     public int getStudentCount() {
 
         String sql = "SELECT COUNT(*) FROM students";
 
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (
+                Connection con = DBConnection.getConnection();
+                PreparedStatement ps = con.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
 
             if (rs.next()) {
-
                 return rs.getInt(1);
-
             }
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
+
             e.printStackTrace();
+
         }
 
         return 0;
     }
 
-    // Get All Students
+    // ================= ALL STUDENTS =================
     public List<Student> getAllStudents() {
 
         List<Student> list = new ArrayList<>();
 
-        String sql = "SELECT id,name,email,phone FROM students ORDER BY id DESC";
+        String sql =
+                "SELECT id,name,email,phone FROM students ORDER BY id DESC";
 
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (
+                Connection con = DBConnection.getConnection();
+                PreparedStatement ps = con.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
 
@@ -152,11 +178,12 @@ public class StudentDAO {
                 s.setPhone(rs.getString("phone"));
 
                 list.add(s);
-
             }
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
+
             e.printStackTrace();
+
         }
 
         return list;
