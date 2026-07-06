@@ -20,7 +20,9 @@ public class DBConnection {
         }
     }
 
-    public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(URL, USER, PASSWORD);
-    }
+   public static Connection getConnection() throws SQLException {
+    Connection con = DriverManager.getConnection(URL, USER, PASSWORD);
+    System.out.println("===== DATABASE CONNECTED SUCCESSFULLY =====");
+    return con;
+}
 }
