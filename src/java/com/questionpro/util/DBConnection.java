@@ -7,22 +7,22 @@ import java.sql.SQLException;
 public class DBConnection {
 
     private static final String URL =
-        "jdbc:mysql://hopper.proxy.rlwy.net:53256/railway?useSSL=true&serverTimezone=Asia/Kolkata";
+        "jdbc:mysql://hayabusa.proxy.rlwy.net:33538/railway?useSSL=true&serverTimezone=UTC";
 
     private static final String USER = "root";
-    private static final String PASSWORD = "BRWiWYjRBCbfSTusWBBiQmevqKkRUKWD";
+    private static final String PASSWORD = "uESioitrSJjfFcFGMgZyMfgNPPjYVjLe";
 
     static {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException("MySQL JDBC Driver Not Found", e);
+            throw new RuntimeException("MySQL Driver Not Found", e);
         }
     }
 
-   public static Connection getConnection() throws SQLException {
-    Connection con = DriverManager.getConnection(URL, USER, PASSWORD);
-    System.out.println("===== DATABASE CONNECTED SUCCESSFULLY =====");
-    return con;
-}
+    public static Connection getConnection() throws SQLException {
+        Connection con = DriverManager.getConnection(URL, USER, PASSWORD);
+        System.out.println("===== DATABASE CONNECTED SUCCESSFULLY =====");
+        return con;
+    }
 }
