@@ -1,104 +1,192 @@
-package com.questionpro.controller;
+package com.questionpro.dao;
 
-import com.questionpro.dao.StudentDAO;
 import com.questionpro.model.Student;
-import java.io.IOException;
+import com.questionpro.util.DBConnection;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import org.mindrot.jbcrypt.BCrypt;
 
-import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+public class StudentDAO {
 
-@WebServlet("/studentRegister")
-public class StudentRegistrationServlet extends HttpServlet {
+    // ================= REGISTER =================
+    public boolean registerStudent(Student s) {
 
-    private static final long serialVersionUID = 1L;
+        System.out.println("===== registerStudent() START =====");
 
-    private final StudentDAO studentDAO = new StudentDAO();
-
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        System.out.println("========================================");
-        System.out.println("StudentRegistrationServlet doPost() START");
-        System.out.println("========================================");
-
-        String name = request.getParameter("name");
-        String email = request.getParameter("email");
-        String password = request.getParameter("password");
-        String phone = request.getParameter("phone");
-
-        System.out.println("Name     : " + name);
-        System.out.println("Email    : " + email);
-        System.out.println("Phone    : " + phone);
-        System.out.println("Password : " + password);
-
-        if (name == null || name.trim().isEmpty()
-                || email == null || email.trim().isEmpty()
-                || password == null || password.trim().isEmpty()) {
-
-            System.out.println("Validation Failed");
-
-            response.sendRedirect(request.getContextPath()
-                    + "/student/studentRegister.jsp?error=empty");
-            return;
+        if (s == null) {
+            System.out.println("Student object is NULL");
+            return false;
         }
 
-        System.out.println("Validation Passed");
+        System.out.println("Name : " + s.getName());
+        System.out.println("Email: " + s.getEmail());
+        System.out.println("Phone: " + s.getPhone());
 
-        if (studentDAO.emailExists(email.trim())) {
-
-            System.out.println("Email Already Exists");
-
-            response.sendRedirect(request.getContextPath()
-                    + "/student/studentRegister.jsp?error=email");
-            return;
+        if (emailExists(s.getEmail())) {
+            System.out.println("Email already exists");
+            return false;
         }
 
-        Student student = new Student();
+        String sql =
+                "INSERT INTO students(name,email,password,phone) VALUES(?,?,?,?)";
 
-        student.setName(name.trim());
-        student.setEmail(email.trim());
-        student.setPassword(password.trim());
-        student.setPhone(phone == null ? "" : phone.trim());
+        try (
+                Connection con = DBConnection.getConnection();
+                PreparedStatement ps = con.prepareStatement(sql)) {
 
-        try {
+            String hash = BCrypt.hashpw(s.getPassword(), BCrypt.gensalt());
 
-            System.out.println("Calling registerStudent()...");
+            ps.setString(1, s.getName());
+            ps.setString(2, s.getEmail());
+            ps.setString(3, hash);
+            ps.setString(4, s.getPhone());
 
-            boolean success = studentDAO.registerStudent(student);
+            int rows = ps.executeUpdate();
 
-            System.out.println("registerStudent() Returned = " + success);
+            System.out.println("Rows Inserted = " + rows);
 
-            if (success) {
+            return rows > 0;
 
-                System.out.println("Registration SUCCESS");
+        } catch (SQLException e) {
 
-                response.sendRedirect(request.getContextPath()
-                        + "/student/studentLogin.jsp?msg=registered");
+            System.out.println("===== SQL ERROR =====");
+            e.printStackTrace();
 
-            } else {
+        } catch (Exception e) {
 
-                System.out.println("Registration FAILED");
+            System.out.println("===== UNKNOWN ERROR =====");
+            e.printStackTrace();
 
-                response.sendRedirect(request.getContextPath()
-                        + "/student/studentRegister.jsp?error=failed");
+        }
+
+        return false;
+    }
+
+    // ================= LOGIN =================
+    public Student validateStudent(String email, String password) {
+
+        String sql = "SELECT * FROM students WHERE email=?";
+
+        try (
+                Connection con = DBConnection.getConnection();
+                PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, email);
+
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+
+                String dbPassword = rs.getString("password");
+
+                if (BCrypt.checkpw(password, dbPassword)) {
+
+                    Student s = new Student();
+
+                    s.setId(rs.getInt("id"));
+                    s.setName(rs.getString("name"));
+                    s.setEmail(rs.getString("email"));
+                    s.setPhone(rs.getString("phone"));
+                    s.setPassword(dbPassword);
+
+                    return s;
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    // ================= EMAIL EXISTS =================
+    public boolean emailExists(String email) {
+
+        String sql = "SELECT id FROM students WHERE email=?";
+
+        try (
+                Connection con = DBConnection.getConnection();
+                PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, email);
+
+            ResultSet rs = ps.executeQuery();
+
+            boolean exists = rs.next();
+
+            System.out.println("Email Exists = " + exists);
+
+            return exists;
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+        }
+
+        return false;
+    }
+
+    // ================= COUNT =================
+    public int getStudentCount() {
+
+        String sql = "SELECT COUNT(*) FROM students";
+
+        try (
+                Connection con = DBConnection.getConnection();
+                PreparedStatement ps = con.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+
+            if (rs.next()) {
+                return rs.getInt(1);
             }
 
         } catch (Exception e) {
 
-            System.out.println("EXCEPTION OCCURRED");
+            e.printStackTrace();
+
+        }
+
+        return 0;
+    }
+
+    // ================= ALL STUDENTS =================
+    public List<Student> getAllStudents() {
+
+        List<Student> list = new ArrayList<>();
+
+        String sql =
+                "SELECT id,name,email,phone FROM students ORDER BY id DESC";
+
+        try (
+                Connection con = DBConnection.getConnection();
+                PreparedStatement ps = con.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+
+                Student s = new Student();
+
+                s.setId(rs.getInt("id"));
+                s.setName(rs.getString("name"));
+                s.setEmail(rs.getString("email"));
+                s.setPhone(rs.getString("phone"));
+
+                list.add(s);
+            }
+
+        } catch (Exception e) {
 
             e.printStackTrace();
 
-            response.sendRedirect(request.getContextPath()
-                    + "/student/studentRegister.jsp?error=server");
         }
 
-        System.out.println("========================================");
-        System.out.println("StudentRegistrationServlet doPost() END");
-        System.out.println("========================================");
+        return list;
     }
+
 }
